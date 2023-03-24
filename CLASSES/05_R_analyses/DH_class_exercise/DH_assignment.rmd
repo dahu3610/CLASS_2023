@@ -1,0 +1,313 @@
+---
+title: "Class_exercise"
+author: "Dakota Hunt"
+date: "3/16/2023"
+output: github_document
+---
+
+
+# Load the libraries you need
+# Load functions you need "my_class_functions"
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(GenomicRanges)
+library(tidyverse)
+library(IRanges)
+source("../../../util/my_class_functions.R")
+source("../../../util/plotting_functions.R")
+source("../../../util/_setup.R")
+
+
+```
+
+
+# load in your peak files for each replicate of each protein
+# Here I am starting to analyze my data for my proteins of interest: ARID3A, ATF3, BHLHE40, BRCA1, CEBPB
+# First I will read in each replicate file
+```{r load in peak files}
+# filepath to import peaks
+broadpeakfilepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/group_chip/Dakota/results/bwa/mergedLibrary/macs/broadPeak"
+# import peaks to peak_list object
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
+# printing out a table of the number of peaks in each file:
+peak_num <- sapply(peak_list, length) %>% as.data.frame(row.names = T)
+# label column
+names(peak_num) <- c("num_peaks")
+peak_num
+```
+
+
+# Now I am going to create consensus peaks for each protein
+```{r consensus peaks}
+dbps <- unique(sapply(names(peak_list), function(x) {
+   unlist(strsplit(x, "_"))[1]
+}))
+
+consensus_list <- lapply(dbps, consensus_from_reduced, peak_list)
+names(consensus_list) <- dbps
+
+# Exporting consensus peaks to results folder
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/dahu3610"
+consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/DH_class_exercise/results/consensus_peaks/"
+exportpath <- file.path(basepath, consensus_path)
+
+for(i in 1:length(consensus_list)) {
+rtracklayer::export(consensus_list[[i]], paste0(exportpath, names(consensus_list)[i], "_consensus_peaks.bed") )}
+```
+
+# Now I am going to make my consensus peaks compatible with UCSC genome browser
+```{r}
+consensus_file_list <- list.files("/scratch/Shares/rinnclass/CLASS_2023/dahu3610/CLASS_2023/CLASSES/05_R_analyses/DH_class_exercise/results/consensus_peaks", full.names = T, pattern = ".bed")
+
+peaks <- lapply(consensus_file_list, read.table, col.names = c("chr", "start", "end", "name", "score", "strand"))
+names(peaks) <- dbps
+
+# Make canonical chromosomes object
+canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
+# Use lapply with filter function to canonical_chr
+peaks <- lapply(peaks, function(x) x %>% filter(chr %in% canonical_chr))
+new_filenames <- paste0("results/consensus_peaks/", names(peaks), "_consensus.bed")
+
+# Write to results folder
+for(i in 1:length(peaks)) {
+  write.table(peaks[[i]], new_filenames[[i]],
+              sep = "\t", col.names = FALSE, row.names = FALSE,
+              quote = FALSE, append = TRUE)
+}
+
+# print out consensus peak files in a results/UCSC directory
+headers <- paste0("track type=bed name=", names(peaks))
+headers
+
+# Creating a path to export after adding header, putting in UCSC_consensus_peaks folder
+new_filenames <- paste0("results/UCSC_consensus_peaks/", names(peaks), ".bed")
+new_filenames
+# Add headers and write table
+for(i in 1:length(peaks)) {
+  # Write the header line
+  writeLines(headers[[i]], new_filenames[[i]])
+  # Append the broadPeak table data
+  
+  write.table(peaks[[i]], new_filenames[[i]],
+              sep = "\t", col.names = FALSE, row.names = FALSE,
+              quote = FALSE, append = TRUE)
+}
+
+```
+
+# I am curious if my proteins are transcription factors so I will use the annotations
+# in a cell paper I found and see
+
+```{r}
+url <- "https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx"
+
+# Download file from url to results folder
+destination_for_url <- "results/TF_annotations.xlsx"
+download.file(url, destination_for_url)
+
+
+human_tfs <- readxl::read_excel("results/TF_annotations.xlsx",
+                                sheet = 2, skip = 1)
+# Renamee the 4th column to indicate if it is a TF.
+names(human_tfs)[4] <- "is_tf"
+
+consensus_peak_path <- "/scratch/Shares/rinnclass/CLASS_2023/dahu3610/CLASS_2023/CLASSES/05_R_analyses/DH_class_exercise/results/consensus_peaks"
+consensus_peaks_files <- list.files(consensus_peak_path, 
+                                             pattern = "*_consensus.bed",
+                                             full.names = TRUE)
+# lapply with import function to make a list of GRanges
+consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
+
+# adding DBP name to each list of GRanges from the file name
+# note gsub requires no space around or argument ( | )
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/dahu3610/CLASS_2023/CLASSES/05_R_analyses/DH_class_exercise/results/consensus_peaks/|_consensus.bed","", consensus_peaks_files)
+
+# Intersect gene names that are in  ChIP data and have TF identity.
+
+num_peaks_df <- data.frame("dbp" = names(consensus_peaks),
+                           "num_peaks" = sapply(consensus_peaks, length))
+length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
+
+human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(num_peaks_df$dbp), 1:4]
+
+
+# Add new column names
+names(human_tfs) <- c("ensembl_id",
+                      "dbp",
+                      "dbd",
+                      "tf")
+
+num_peaks_df <- merge(num_peaks_df, human_tfs, all.x = T)
+num_peaks_df$total_peak_length <- sapply(consensus_peaks, function(x) sum(width(x)))
+
+
+# Write csv
+write_csv(num_peaks_df, "results/num_peaks_df.csv")
+
+
+```
+
+
+
+
+# Now I want to compare a protein with a previous analysis 
+```{r}
+
+# The consensus peaks for CEBPB align well with the preaks from previous analyses!
+
+```
+
+
+# Now I am going to determine how my peaks for each protein overlap annotations of the genome
+# First I will find the overlaps between my consensus peaks with promoters of lncRNA and mRNA promoters
+
+```{r}
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
+
+# Creating gencode_genes
+gencode_genes <- gencode_gr[gencode_gr$type == "gene"] 
+table(gencode_gr$type)
+
+# Exporg genes gtf file to gene annotations folder
+rtracklayer::export(gencode_genes, "results/gene_annotations/gencode_genes.gtf")
+
+# create mRNA gtf and export
+mrna_genes <- gencode_genes[gencode_genes$gene_type %in% "protein_coding"] 
+
+rtracklayer::export(mrna_genes, "results/gene_annotations/mrna_genes.gtf")
+
+# create lncRNA gtf and export
+lncrna_genes <- gencode_genes[gencode_genes$gene_type %in% "lncRNA"] 
+
+rtracklayer::export(lncrna_genes, "results/gene_annotations/lncrna_genes.gtf")
+
+# create both mRNA and lncRNA annotations together.
+mrna_lncrna_genes <- gencode_genes[gencode_genes$gene_type %in% c("protein_coding","lncRNA")]
+rtracklayer::export(mrna_lncrna_genes, "results/gene_annotations/mrna_lncrna_genes.gtf")
+
+lncrna_mrna_promoters <- promoters(mrna_lncrna_genes, upstream = 1000, downstream = 1000)
+rtracklayer::export(lncrna_mrna_promoters, "results/gene_annotations/lncrna_mrna_promoters.gtf")
+
+
+# Create annonation of lncRNA and mRNA gene IDs to subset
+lncrna_gene_ids <- mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "lncRNA"]
+mrna_gene_ids <-mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "protein_coding"]
+
+# find overlaps of promoters for each protein
+promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, consensus_peaks, type = "counts")
+
+#Add number of promoter peak overlaps to num_peaks_df
+num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
+```
+
+## results: 
+#1) What can you determine from these overlaps?
+The number of peaks overlapping lncRNA/mRNA promoters for each protein. Some promoters may have multiple peaks or a peak may overlap multiple promoters. The ratio of peaks overlapping promoters to total peaks varies greatly from protein to protein.
+
+
+# Now I want to compare the overlaps with lncRNA and mRNA promoters seperately 
+```{r}
+# lncRNA promoter overlaps
+num_peaks_df$peaks_overlapping_lncrna_promoters <- rowSums(promoter_peak_counts[,lncrna_gene_ids])
+
+# mRNA promoter overlaps
+num_peaks_df$peaks_overlapping_mrna_promoters <- rowSums(promoter_peak_counts[,mrna_gene_ids])
+
+# Write to num_peaks_df.csv
+write_csv(num_peaks_df, "results/num_peaks_df.csv")
+```
+## results:
+# 1) What is the difference in overlaps between mRNA and lncRNA promoters
+For each protein, the majority of peaks overlap mRNA promoters compared to lncRNA promoters, which makes senses as I believe there are significantly more mRNa promoters than lncRNA promoters int he genome.
+
+# Now I am going to test if there is more binding over gene bodies than promoters
+# I will seperate lncRNA and mRNA gene bodies to find the overlaps 
+
+```{r}
+genebody_peak_counts <- count_peaks_per_feature(mrna_lncrna_genes, 
+                                                consensus_peaks, 
+                                                type = "counts")
+
+
+# All gene bodies
+num_peaks_df$peaks_overlapping_genebody <- 
+  rowSums(genebody_peak_counts)
+
+# lncRNA gene bodies 
+num_peaks_df$peaks_overlapping_lncrna_genebody <- rowSums(genebody_peak_counts[,lncrna_gene_ids])
+
+# mRNA gene bodies
+num_peaks_df$peaks_overlapping_mrna_genebody <- 
+  rowSums(genebody_peak_counts[,mrna_gene_ids])
+
+# Writing csv
+write_csv(num_peaks_df, "results/num_peaks_df.csv")
+
+num_peaks_df
+```
+## results: 
+# 1) Do my proteins have more overlaps with promoters or genebodies?
+Each peak has more overlaps with gene bodies compared to promoters, however the ratio varies greatly between proteins. CEBPB and ARID3A vastly favor gene bodies whereas the other 3 proteins have closer to a 50:50 ratio.
+
+
+# It is nice and all to find overlaps, but I am interested in how many proteins
+# bind a specific promoter. I will use my handy "occurence" parameter in 
+# " count peaks per feature" 
+
+```{r}
+promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, consensus_peaks, 
+                                               type = "occurrence")
+
+# Checking that all lncrna & mrna genes are accounted for and writing table
+stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
+
+write.table(promoter_peak_occurence, "results/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+#Creating peak occurence data frame
+peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
+                                "gene_name" = lncrna_mrna_promoters$gene_name,
+                                "gene_type" = lncrna_mrna_promoters$gene_type,
+                                "chr" = lncrna_mrna_promoters@seqnames,   
+                                "1kb_up_tss_start" = lncrna_mrna_promoters@ranges@start,
+                                "strand" = lncrna_mrna_promoters@strand,
+                                "number_of_dbp" = colSums(promoter_peak_occurence))
+
+```
+## results: I find the max number of proteins on a promoter to be 5, (which would be all of the proteins I am looking at.)
+
+
+# Now I want to start plotting my results
+# First I will see if there is a realtionship between peak number and total DNA covered
+```{r}
+ggplot(num_peaks_df, aes(x = num_peaks, 
+                         y = total_peak_length)) +
+  geom_point() 
+```
+
+# Now I want to color my plot by whether the protein is a TF or not.
+```{r}
+ggplot(num_peaks_df, aes(x = log2(num_peaks/1e3), 
+                 y = total_peak_length/1e6,
+                 color = tf == "Yes")) +
+  geom_point()
+
+```
+
+# I want to make a histogram of the number of peaks for each of my proteins. For such few proteins being assessed, a histogram may not be the best type of plot to use here.
+
+```{r}
+ggplot(num_peaks_df, aes(x = num_peaks, fill = tf)) +
+  geom_histogram(bins = 30)
+```
+
+
+# Now I want to facet this by the type of DNA binding domain my protein has.
+```{r}
+ggplot(num_peaks_df, aes(x = num_peaks, fill = tf)) +
+  facet_wrap(dbd ~ .) +
+  geom_histogram()
+```
+
+
+# Cool now I am ready to send my result to my collaborator as a knitted document
