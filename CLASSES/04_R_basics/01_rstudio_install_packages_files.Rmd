@@ -127,6 +127,7 @@ deseq2
 ggpubr
 
 
+BiocManager::install("Gviz")
 
 
 
