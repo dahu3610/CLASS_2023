@@ -15,7 +15,7 @@ library(GenomicRanges)
 source("../../../util/my_class_functions.R")
 
 # filepath to import peaks
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/dahu3610"
 peak_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks"
 consensusPeakPath <- file.path(basepath, peak_path)
 ```
@@ -55,7 +55,7 @@ consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
 
 # adding DBP name to each list of GRanges from the file name
 # note gsub requires no space around or argument ( | )
-names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks/|_consensus.bed","", consensus_peaks_files)
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/dahu3610/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks/|_consensus.bed","", consensus_peaks_files)
 
 ```
 
@@ -217,7 +217,7 @@ num_peaks_df$peaks_overlapping_mrna_genebody <-
 
 # let's take a look.
 # cool lots of info let's save:
-write_csv(num_peaks_df, "num_peaks_df.csv")
+write_csv(num_peaks_df, "results/num_peaks_df.csv")
 
 ```
 

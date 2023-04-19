@@ -89,12 +89,15 @@ I have some set up to test in the data folder.
 ```{R find overlaps}
 
 # setting file path to peak files
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-path <- "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/group_chip/Dakota"
+path <- "/results/bwa/mergedLibrary/macs/broadPeak"
 
 # first we read the peak files in as gRanges object with rtracklayer function.
-peaks1 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"))
-peaks2 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R2_peaks.broadPeak"))
+peaks1 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R1_peaks.broadPeak"))
+peaks2 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R2_peaks.broadPeak"))
+peaks3 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R3_peaks.broadPeak"))
+peaks4 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R4_peaks.broadPeak"))
+
 
 # let's take a look:
 peaks1
@@ -106,10 +109,29 @@ peaks_1_tsv <- read_tsv(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"), c
 ?findOverlaps
 ?import
 
-ovf <- findOverlaps(peaks1, peaks2)
+
+ovf12 <- findOverlaps(peaks1,peaks2)
 length(peaks1)
 length(peaks2)
-length(ovf)
+length(ovf12)
+
+ovf13 <- findOverlaps(peaks1,peaks3)
+ovf14 <- findOverlaps(peaks1,peaks4)
+
+ovf23 <- findOverlaps(peaks2,peaks3)
+length(peaks2)
+length(peaks3)
+length(ovf23)
+
+ovf24 <- findOverlaps(peaks2,peaks4)
+length(peaks2)
+length(peaks4)
+length(ovf24)
+
+ovf34 <- findOverlaps(peaks3,peaks4)
+length(peaks3)
+length(peaks4)
+length(ovf34)
 
 ```
 # NOTE: the first file is query and second is the subject. 
@@ -117,11 +139,11 @@ length(ovf)
 
 Let's take a look at the overlaps results.
 ```{r digging into findOverlap results}
-summary(ovf)
+summary(ovf14)
 # 28445 overlaps -- same result as length
 summary(peaks1)
 # we had 33582 peaks in replicate 1
-summary(peaks2)
+summary(peaks4)
 # 43435 peaks in replicate 2
 # This means 28,445 peaks overlapped but we need to consider 
 # the subject and query.
@@ -168,8 +190,8 @@ Let's learn some more Granges while solving this (a common activity)
 # Test 1 : width of peaks
 ```{r digging into findOverlap results}
 # let's see with iranges "width function"
-summary(width(crazy_peaks1))
-summary(width(crazy_peaks2))
+summary(width(peaks1))
+summary(width(peaks3))
 
 # there peaks in peak1 are generally larger than peak2
 # thus a peak in peak1 could overlap multiple peaks in peak2 (vice versa too).
@@ -194,15 +216,15 @@ We can get more information from then results of findOverlaps.
 
 # let's understand this more deeply there are some subtilties we should cover
 # let's table the @from index
-table(crazy_ovf@from) 
-table(table(crazy_ovf@from))
+table(ovf14@from) 
+table(table(ovf14@from))
 
 # SOLUTION !! This solves it the sum of these is 11K overlaps!
 # There are 6,388 unique peak overlaps -- maybe the result you
 # actually want to report
 
 # same for @to
-table(table(crazy_ovf@to))
+table(table(ovf14@to))
 # huh most only have one overlap probably because:
 # the multiple overlaps in peak2 are assigned to 1 peak in peak1
 # 2 peaks in peak2 had overlap with 23 peaks in peak1

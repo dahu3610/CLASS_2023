@@ -162,7 +162,7 @@ Here we will index into gencode_gr to $type
 this has all the info of types of genes included.
 ```{R gene types}
 
-# indexing into gene typse 
+# indexing into gene type 
 table(gencode_gr@elementMetadata$type)
 
 ## cool this tell us a lot about the genome with one line!

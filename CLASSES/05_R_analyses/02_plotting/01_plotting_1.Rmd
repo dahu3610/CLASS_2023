@@ -136,8 +136,7 @@ Let's plot three plots for if DBP is a TF, is not or NA.
 ```{R facet by TF annotation}
 
 ggplot(big_num_peaks_df, aes(x = num_peaks, 
-                 y = total_peak_length
-                )) +
+                 y = total_peak_length)) +
   facet_wrap(tf ~ .) +
   geom_point() 
 

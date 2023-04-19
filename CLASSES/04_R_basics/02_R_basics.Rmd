@@ -21,7 +21,7 @@ We will use read_tsv to load in a peak file that is in tab separated format (tsv
 ```{bash}
 
 # The Peak files are located in our 03 nextflow folder -- let's take a look:
-cd /scratch/Shares/rinnclass/CLASS_2023/<your_folder>/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak
+cd /scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/group_chip/Dakota/results/bwa/mergedLibrary/macs/broadPeak
 
 # We see a lot of different types of peak files and we want .braodPeak Let's load one in 
 
@@ -34,7 +34,7 @@ Since that is a lot of path typing each time let's shorten it my using file.path
 
 # we will first need to set an object name to load into the environment (what we are calling this file.path)
 # we assign it the values in the file using the assignment opperator " <- " 
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/group_chip/Dakota"
 
 # we can then add the rest of the path as such:
 Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
@@ -43,7 +43,13 @@ Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
 # now we can read in the peak file using file.path() function , rest of path
 # we will use the "read_tsv" baseR function and assign it ( <- ) to Pol2_peak1
 
-Pol2_peak1 <- read_tsv(file.path(basepath, "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak"))
+CEBPB_peak1 <- read_tsv(file.path(basepath, "/results/bwa/mergedLibrary/macs/broadPeak/CEBPB_R1_peaks.broadPeak"), col_names = F)
+
+CEBPB_peak2 <- read_tsv(file.path(basepath, "/results/bwa/mergedLibrary/macs/broadPeak/CEBPB_R2_peaks.broadPeak"), col_names = F)
+
+CEBPB_peak3 <- read_tsv(file.path(basepath, "/results/bwa/mergedLibrary/macs/broadPeak/CEBPB_R3_peaks.broadPeak"), col_names = F)
+
+CEBPB_peak4 <- read_tsv(file.path(basepath, "/results/bwa/mergedLibrary/macs/broadPeak/CEBPB_R4_peaks.broadPeak"), col_names = F)
 
 # cool, let's take a look at what we got by clicking the object in the env window.
 ```
@@ -79,16 +85,22 @@ There are so many ways to do this we will just explore a couple
 ```{r renaming columns}
 
 # first let's just change the name of one col (we have X1-X9)
-names(Pol2_peak1)[1] <- 'chromosome'
+#names(Pol2_peak1)[1] <- 'chromosome'
 
 # ok changed the right col name, but now the other cols have no names !!
 # not to worry we can index them and rename
 
 # here we used names and then outside that indexed col 2 with [] 
-names(Pol2_peak1)[2] <- 'start'
+#names(Pol2_peak1)[2] <- 'start'
 
 # This will get really repetitive but works. Here is a better solution:
-names(Pol2_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+names(CEBPB_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+                       'signalValue', 'pValue', 'qValue')
+names(CEBPB_peak2) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+                       'signalValue', 'pValue', 'qValue')
+names(CEBPB_peak3) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+                       'signalValue', 'pValue', 'qValue')
+names(CEBPB_peak4) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
                        'signalValue', 'pValue', 'qValue')
 
 # here C makes a concatenated list of values -- trick is to make sure in right order!!
@@ -121,8 +133,14 @@ Pol2_peak1 <- filter(Pol2_peak1, chromosome %in% c(paste0("chr", 1:22), "chrM", 
 
 # Let's get even more tidy:
 
-Pol2_peak1 <- Pol2_peak1 %>%
+CEBPB_peak1 <- CEBPB_peak1 %>%
   filter(chromosome %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY")) 
+CEBPB_peak2 <- CEBPB_peak2 %>%
+  filter(chromosome %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"))
+CEBPB_peak3 <- CEBPB_peak3 %>%
+  filter(chromosome %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"))
+CEBPB_peak4 <- CEBPB_peak4 %>%
+  filter(chromosome %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"))
 
 # Here we use the tidyverse pipe "%>%" to send the information in dataframe (DF)
 # to filter and then add the parameters in filter
@@ -138,18 +156,21 @@ Nice, so now we have a data frame we can start to analyze
 # how many peaks are there -- well it's kinda obvious from env
 # but we can use baseR to determine the same value:
 
-length(Pol2_peak1)
+length(CEBPB_peak1)
 
 # this tells us there are 9 cols
 
-length(Pol2_peak1$chromosome)
+length(CEBPB_peak1$chromosome)
+length(CEBPB_peak2$chromosome)
+length(CEBPB_peak3$chromosome)
+length(CEBPB_peak4$chromosome)
 
 # this tells us the chromosome col has 33,493 peaks.
 
 
 # let's try using summary and table baseR functions;
 
-summary(Pol2_peak1)
+summary(CEBPB_peak1)
 
 # Woah lots of information. Each column is summarized in quartiles etc
 # we can see the Pvalues range from 10^-3.401 (0.0003971915) to 10^-154.989 (1.025652e-155)
@@ -158,16 +179,16 @@ summary(Pol2_peak1)
 
 # Now let's try table to see how many times a qValue is the same
 
-table(Pol2_peak1$qValue)
+table(CEBPB_peak1$qValue)
 
 # yikes that is hard to understand. But we can table(table :)
 
-table(table(Pol2_peak1$qValue))
+table(table(CEBPB_peak1$qValue))
 
 # so we can see 1 qvalue shows up 229 times but most have a unique qValue
 
 # let's see if fold change is as variable 
-table(table(Pol2_peak1$signalValue))
+table(table(CEBPB_peak1$signalValue))
 
 ```
 
@@ -180,7 +201,25 @@ Now let's make a new column that has the width of the peak using "mutate" functi
 
 # we will use tidyverse to pipe the DF to mutate so it knows col names
 
-Pol2_peak1 <- Pol2_peak1 %>%
+CEBPB_peak1 <- CEBPB_peak1 %>%
+  # mutate wants name of new col and then function to create that col
+  # we will simply subtract the end and start of the peak.
+  
+  mutate(peak_width = end - start)
+
+CEBPB_peak2 <- CEBPB_peak2 %>%
+  # mutate wants name of new col and then function to create that col
+  # we will simply subtract the end and start of the peak.
+  
+  mutate(peak_width = end - start)
+
+CEBPB_peak3 <- CEBPB_peak3 %>%
+  # mutate wants name of new col and then function to create that col
+  # we will simply subtract the end and start of the peak.
+  
+  mutate(peak_width = end - start)
+
+CEBPB_peak4 <- CEBPB_peak4 %>%
   # mutate wants name of new col and then function to create that col
   # we will simply subtract the end and start of the peak.
   
@@ -196,7 +235,10 @@ Let's get some info make some basic plots to get to know our data better:
 
 # let's use summary again:
 
-summary(Pol2_peak1$peak_width)
+summary(CEBPB_peak1$peak_width)
+summary(CEBPB_peak2$peak_width)
+summary(CEBPB_peak3$peak_width)
+summary(CEBPB_peak4$peak_width)
 # cool we see smallest peak is 114 bp and longest 12.4 Kb !
 
 # let's make a histogram plot of peak size distributions using the base R hist func:
@@ -205,24 +247,24 @@ summary(Pol2_peak1$peak_width)
 # plotting peak_width col as histogram (we will go into plotting more later in class)
 # for now just the basics:
 
-hist(Pol2_peak1$peak_width)
+hist(CEBPB_peak1$peak_width)
 
 # looks like most are small, let's add more breaks
 
-hist(Pol2_peak1$peak_width, breaks = 50)
+hist(CEBPB_peak1$peak_width, breaks = 50)
 
 # now let's set the x axis limits to ~3Kb
 
-hist(Pol2_peak1$peak_width, breaks = 50, xlim = c(0,3000))
+hist(CEBPB_peak1$peak_width, breaks = 500, xlim = c(0,1500))
 
 # nice so we observe a left centered normal dist of sizes.
 
 # let's try a density plot -here we need to calculate density then plot:
 
-density <- density(Pol2_peak1$peak_width)
+density1 <- density(CEBPB_peak1$peak_width)
 
 # now we can use plot to see the values of density
-plot(density, xlim = c(0,3000))
+plot(density1, xlim = c(0,3000))
 
 # here we can see some sort of "shoulder" around 500bp
 

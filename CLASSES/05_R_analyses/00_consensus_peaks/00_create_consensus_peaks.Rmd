@@ -13,11 +13,11 @@ options(stringsAsFactors = F)
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
-source("../../../util/my_class_functions.R")
+source("../../../util/BCHM5631_class_functions.R")
 
 # filepath to import peaks
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/group_chip/Dakota"
+peak_path <- "results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
 ```
 Acompanying youtube video:
@@ -84,7 +84,7 @@ num_consensus_peaks <- sapply(consensus_list, length) %>%
   dplyr::rename(number_consensus_peaks = ".")
 
 
-# merge into num_peaks
+# merge into num_peaks, merges based on the dbp column in both
 peak_num <- left_join(peak_num, num_consensus_peaks)
 
 # saving 
@@ -98,8 +98,8 @@ Let's use "analysis/00_consensus_peaks/
 
 ```{r exporting consensus peaks }
 # setting file path to export
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/dahu3610"
+consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks/"
 exportpath <- file.path(basepath, consensus_path)
 
 # /scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks
@@ -131,7 +131,7 @@ peak_1 <- read_tsv("EP300_consensus_peaks.bed", col_names = F)
 Rtracklayer export does not keep the col names :( 
 ```{r reading .bed file from rtracklayer_export}
 # FIRST a file list:
-consensus_file_list <- list.files("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks", full.names = T, pattern = ".bed")
+consensus_file_list <- list.files("/scratch/Shares/rinnclass/CLASS_2023/dahu3610/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks", full.names = T, pattern = ".bed")
 
 # lapply (for loop) across consensus file list to add colnames
 # The actual col names for .broadPeak are: chr, start, end, name, score, strand
@@ -179,7 +179,7 @@ The header we need is : track type=broadPeak name="
 # we are using paste0 to print the header text
 # then we are adding the names as the value the header equals with 'names' function
 
-headers <- paste0("track type=bedGraph name=", names(peaks))
+headers <- paste0("track type=bed name=", names(peaks))
 headers
 
 # creating a path to export after we add header in for loop below

@@ -27,7 +27,7 @@ First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
 
 # setting file path to peak files
 
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/dahu3610"
 path <- "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak"
 
 # first we read the peak files in as gRanges object with rtracklayer function.
@@ -53,6 +53,10 @@ gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"],
                                upstream = 1e3, 
                                downstream = 1e3)
 
+gencode_genes <- gencode_gr[gencode_gr$type == "gene"]
+                              
+
+
 
 length(gencode_promoters)
 # there are ~60,000 promoters in the $type == gene
@@ -66,16 +70,16 @@ Now we have promoter ranges and peak ranges let's use findOverlaps function
 ```{R findoverlaps chip peaks &}
 # Promoter overlap function requires two parameters:
 # Query file (peaks) and subject file (promoters)
-promoter_overlaps_pol2_peaks1 <- findOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_CEBPB_peaks1 <- findOverlaps(peaks1, gencode_promoters)
 # Let's look
-promoter_overlaps_pol2_peaks1
+promoter_overlaps_CEBPB_peaks1
 
 # nice we see that 19,063 promoters overlap with Pol2 replicate 1.
 # Let's try the same for replicate 2:
 
-promoter_overlaps_pol2_peaks2 <- findOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_CEBPB_peaks2 <- findOverlaps(peaks2, gencode_promoters)
 # Let's look
-promoter_overlaps_pol2_peaks2
+promoter_overlaps_CEBPB_peaks2
 
 # 19,700 promoters overlap -- so similar to rep 1.
 ```
@@ -88,7 +92,7 @@ We can use our new skill and findOverlaps of the overlaps :)
 # one obvious thought maybe to do findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
 # Let's try it !
 
-same_prom_ov <- findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+same_prom_ov12 <- findOverlaps(promoter_overlaps_CEBPB_peaks1, promoter_overlaps_CEBPB_peaks2)
 
 # huh that didn't work? Why not?
 ```
@@ -105,14 +109,14 @@ NOTE: each peak is going to have numerous overlaps so we want only the unique on
 # Since we did peaks1, gencode promoters peaks1 is @ from and promoters @ to
 
 # indexing
-peak1_ov_gr <- peaks1[unique(promoter_overlaps_pol2_peaks1@from)] 
+peak1_ov_gr <- peaks1[unique(promoter_overlaps_CEBPB_peaks1@from)] 
 
 # indexing
-peak2_ov_gr <- peaks2[unique(promoter_overlaps_pol2_peaks2@from)]
+peak2_ov_gr <- peaks2[unique(promoter_overlaps_CEBPB_peaks2@from)]
 
 # now let's find the overlaps of the overlaps
-ov_of_ov <- findOverlaps(peak1_ov_gr, peak2_ov_gr)
-ov_of_ov
+ov_of_ov12 <- findOverlaps(peak1_ov_gr, peak2_ov_gr)
+ov_of_ov12
 
 # nice we see that there are 12,961 promoter overlaps in common.
 # 13,857 and 14,403 promoter ov had 12,961 in common ~90% !
@@ -130,20 +134,20 @@ This will retrieve the overlapping index only from the original Granges.
 ```{r SubsetByOverlaps }
 
 # subset overlaps from peaks1 and promoters
-promoter_overlaps_pol2_peaks1 <- subsetByOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_CEBPB_peaks1 <- subsetByOverlaps(peaks1, gencode_promoters)
 
 # Let's look
-promoter_overlaps_pol2_peaks1
+promoter_overlaps_CEBPB_peaks1
 # 13,857 = same as before with findOverlaps
 
 # subset overlaps from peaks2 and promoters
-promoter_overlaps_pol2_peaks2 <- subsetByOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_CEBPB_peaks2 <- subsetByOverlaps(peaks2, gencode_promoters)
 # Let's look
-promoter_overlaps_pol2_peaks2
+promoter_overlaps_CEBPB_peaks2
 # 14,403 = same as before with findOverlaps
 
 # now overlapping the two overlaps by findOverlaps
-subset_overlaps_peaks <- findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+subset_overlaps_peaks <- findOverlaps(promoter_overlaps_CEBPB_peaks1, promoter_overlaps_CEBPB_peaks2)
 subset_overlaps_peaks
 # 12,961 -- It's the same -- yay and simpler code.
 
@@ -189,15 +193,15 @@ Now let's overlap our peak files and then overlap with promoters.
 
 ```{r peak overlaps and promoter overlaps}
 
-pol2_consensus_peaks <- subsetByOverlaps(peaks1, peaks2)
-pol2_consensus_peaks
+consensus12 <- subsetByOverlaps(peaks1, peaks2)
+consensus12
 # 27,206 
 peaks1
 # 33,582
 peaks2
 # 43,435
 
-# Ok so we somethign similar to R_basica/03_
+# Ok so we something similar to R_basics/03_
 
 # Overlap with promoters:
 pol2_consensus_peaks_ov_promoters <- subsetByOverlaps(pol2_consensus_peaks, gencode_promoters)
@@ -264,30 +268,57 @@ basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 path <- "/CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak"
 
 # load in each replicate
-EP300_R1 <- rtracklayer::import(file.path(basepath,path, "EP300_R1_peaks.broadPeak"))
-EP300_R2 <- rtracklayer::import(file.path(basepath,path, "EP300_R2_peaks.broadPeak"))
-EP300_R3 <- rtracklayer::import(file.path(basepath,path, "EP300_R3_peaks.broadPeak"))
-EP300_R4 <- rtracklayer::import(file.path(basepath,path, "EP300_R4_peaks.broadPeak"))
+CEBPB_R1 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R1_peaks.broadPeak"))
+CEBPB_R2 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R2_peaks.broadPeak"))
+CEBPB_R3 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R3_peaks.broadPeak"))
+CEBPB_R4 <- rtracklayer::import(file.path(basepath,path, "CEBPB_R4_peaks.broadPeak"))
 
 # finding length for each peak file
-length(EP300_R1)
+length(CEBPB_R1)
 # 62260
-length(EP300_R2)
+length(CEBPB_R2)
 # 66416
-length(EP300_R3)
+length(CEBPB_R3)
 # 14319
-length(EP300_R4)
+length(CEBPB_R4)
 # 16872
 
 
 # iterative find overlaps
-EP300_ov1 <- subsetByOverlaps(EP300_R1, EP300_R2) 
+CEBPB_ov1 <- subsetByOverlaps(CEBPB_R1, CEBPB_R2) 
 #38,409 overlaps
-EP300_ov2 <- subsetByOverlaps(EP300_ov1, EP300_R3)
+CEBPB_ov2 <- subsetByOverlaps(CEBPB_ov1, CEBPB_R3)
 # 11,020 (got much smaller since R3 has only 14K peaks)
-EP300_ov3 <- subsetByOverlaps(EP300_ov2, EP300_R4)
+CEBPB_ov3 <- subsetByOverlaps(CEBPB_ov2, CEBPB_R4)
 # 8,160 (even smaller since we reduced to 11K above)
+length(CEBPB_ov3)
+# 12537 consesus peaks among all 4 replicates
 
+#Excluding Rep 2
+CEBPB_ov_ex2_1 <- subsetByOverlaps(CEBPB_R1, CEBPB_R3) 
+#38,409 overlaps
+CEBPB_ov_ex2_2 <- subsetByOverlaps(CEBPB_ov1, CEBPB_R4)
+length(CEBPB_ov_ex2_2)
+
+CEBPB_consensus_ov_prom <- findOverlaps(CEBPB_ov_ex2_2, gencode_promoters)
+length(CEBPB_ov_ex2_2)
+length(gencode_promoters)
+CEBPB_consensus_ov_prom
+length(CEBPB_consensus_ov_prom)
+
+table(table(CEBPB_consensus_ov_prom@from))
+table(table(CEBPB_consensus_ov_prom@to))
+
+#Finding overlap with gene bodies
+CEBPB_consensus_ov_genes <- findOverlaps(CEBPB_ov_ex2_2, gencode_genes)
+length(CEBPB_ov_ex2_2)
+length(gencode_genes)
+CEBPB_consensus_ov_genes
+length(CEBPB_consensus_ov_genes)
+(length(CEBPB_consensus_ov_genes))/(length(CEBPB_ov_ex2_2))
+
+#Overlap between promoter overlaps and gene body overlaps
+CEBPB_consensus_ov_genesANDprom <- subsetByOverlaps(CEBPB_consensus_ov_genes, CEBPB_consensus_ov_prom)
 
 # Does the order matter?
 
