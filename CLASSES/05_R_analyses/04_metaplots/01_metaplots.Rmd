@@ -71,7 +71,7 @@ In order to calculate what the peak coverage across each promoter is we'll conve
 ?coverage
 
 # creating a coverage object for HDAC2 ChIPseq consensus peaks
-peak_coverage <- coverage(consensus_peaks[["HDAC2"]]) 
+peak_coverage <- coverage(consensus_peaks[["CEBPB"]]) 
 
 
 View(peak_coverage)

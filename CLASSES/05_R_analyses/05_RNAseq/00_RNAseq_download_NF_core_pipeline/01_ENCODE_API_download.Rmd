@@ -11,7 +11,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
-# install.packages("httr")
+#install.packages("httr")
 library(httr)
 # install.packages("janitor")
 library(janitor)

@@ -237,7 +237,7 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 # first we filter promoter_peak_occurrence to just those that have high numbers of dbps
 # let's, find the promoters that bind to many of our dbps
 # a bit of trial and error but 5 of 7 dbps works for me.
-high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 5]
+high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 3]
 
 # let's find out how many high binder promoters there are
 ncol(high_binders)
